@@ -1,0 +1,28 @@
+package html
+
+templ column(item item) {
+	<tr><td valign="top"><a href={ templ.URL(item.Name) }>{ item.Name }</a></td><td align="right">{ item.ModifiedAt }</td><td align="right">{ item.Size }</td><td>&nbsp;</td></tr>
+}
+
+templ page(title string, items []item) {
+	<html>
+		<head>
+			<title>Index of { title }</title>
+		</head>
+		<body>
+			<h1>Index of { title }</h1>
+			<table>
+				<tr><th valign="top"><a href="">Name</a></th><th><a href="">Last modified</a></th><th><a href="">Size</a></th><th><a href="">Description</a></th></tr>
+				<tr><th colspan="5"><hr/></th></tr>
+				if title != "/" {
+					<tr><td><a href="../">Parent Directory</a></td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>
+				}
+				for _, item := range items {
+					@column(item)	
+				}
+				<tr><th colspan="5"><hr/></th></tr>
+			</table>
+		</body>
+	</html>
+}
+

@@ -1,0 +1,101 @@
+version: 2
+
+run:
+  timeout: 10m
+  tests: true
+
+output:
+  format: colored-line-number
+  print-issued-lines: true
+  print-linter-name: true
+
+formatters:
+  enable:
+    - gofmt
+    - goimports
+
+linters:
+  disable-all: true
+  enable:
+    - depguard
+    - err113
+    - errcheck
+    - errorlint
+    - goheader
+    - gomodguard
+    - gosec
+    - govet
+    - ineffassign
+    - lll
+    - misspell
+    - sloglint
+    - staticcheck
+    - unused
+    - whitespace
+  settings:
+    errcheck:
+      check-type-assertions: false
+      check-blank: false
+      exclude-functions:
+        - io.ReadCloser.Close
+    depguard:
+      rules:
+        main:
+          deny:
+           - pkg: math/rand$
+             desc: Use math/rand/v2 instead
+    dupl:
+      threshold: 100
+    goheader:
+      template: |-
+        SPDX-License-Identifier: MIT
+    gomodguard:
+      blocked:
+        modules:
+          - go.uber.org/multierr:
+              recommendations:
+                - errors
+              reason: "Go 1.20+ has support for combining multiple errors, see https://go.dev/doc/go1.20#errors"
+          - golang.org/x/exp/maps:
+              recommendations:
+                - maps
+              reason: "Go 1.23+ has support for maps and slices, see https://go.dev/doc/go1.23#iterators"
+          - golang.org/x/exp/constraints:
+              recommendations:
+                - cmp
+              reason: "Go 1.21+ has support for Ordered constraint, see https://go.dev/doc/go1.21#cmp"
+          - golang.org/x/exp/slices:
+              recommendations:
+                - slices
+              reason: "Go 1.21+ provides many common operations for slices using generic functions, see https://go.dev/doc/go1.21#slices"
+    govet:
+      enable:
+        - nilness
+    gosec:
+      exclude-generated: true
+      includes:
+        - G101  # Look for hard coded credentials
+        - G112  # Potential Slowloris Attack because ReadHeaderTimeout is not configured
+        - G301  # Poor file permissions used when creating a directory
+        - G306  # Poor file permissions used when writing to a new file
+        - G402  # TLS MinVersion too low
+    lll:
+      line-length: 140
+    misspell:
+      locale: US
+    unused:
+      check-exported: false
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    rules:
+      - linters:
+          - err113
+        text: do not define dynamic errors, use wrapped static errors instead
+      - linters:
+          - lll
+        path: ^(hos|internal/header/header_test|internal/out/out_test)\.go 
