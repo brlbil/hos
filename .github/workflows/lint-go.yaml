@@ -1,0 +1,79 @@
+name: Lint
+
+on:
+  pull_request: {}
+  push:
+    branches:
+      - main
+
+permissions: read-all
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.event.after }}
+  cancel-in-progress: true
+
+jobs:
+  go-mod-tidy:
+    name: Check Golang Modules
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: 1.25
+
+      - name: Checkout code
+        uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - name: Check module vendoring
+        run: |
+          go mod tidy
+          go mod vendor
+          test -z "$(git status --porcelain)" || \
+          (echo "::error::modules files is not up to date, please run 'go mod tidy && go mod vendor', re-submit changes"; exit 1)
+
+  verify-signatures:
+    name: Verify Commit Signatures
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Verify commit signed-off
+        run: |
+          set -eu -o pipefail
+          COMMITS=$(git rev-list ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }})
+          for commit in $COMMITS; do
+            commit_msg=$(git log --format=%B -n 1 $commit)
+            if ! echo "$commit_msg" | grep -qE "^Signed-off-by: .+ <.+@.+>$"; then
+              echo "::error::Commit $commit is missing proper Signed-off-by line (format: Signed-off-by: Name <email>)"
+              exit 1
+            fi
+          done
+
+  golangci:
+    name: Lint Code
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: 1.25
+
+      - name: Checkout code
+        uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v8
+        with:
+          version: v2.4.0
+          skip-cache: true
+          args: "--verbose --modules-download-mode=vendor"
+

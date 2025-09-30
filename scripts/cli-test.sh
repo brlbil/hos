@@ -111,7 +111,6 @@ start_server() {
     local server_pid=$!
     echo "$server_pid" > "$pid_file"
 
-
     # Wait for server to be ready using health check
     local max_wait=30
     local wait_count=0
@@ -119,6 +118,8 @@ start_server() {
 
     log_info "Waiting for server to be ready at $health_url..."
 
+    # Lets disable exit on error while checking for server status
+    set +e
     while [[ $wait_count -lt $max_wait ]]; do
         # Check if process is still running
         if ! kill -0 "$server_pid" 2>/dev/null; then
@@ -135,6 +136,7 @@ start_server() {
         sleep 1
         ((wait_count++))
     done
+    set -e
 
     log_error "Server at $address did not become ready within ${max_wait} seconds"
     return 1

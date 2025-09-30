@@ -1,10 +1,14 @@
-.PHONY: build test lint clean check help all build-hos build-hosd cli-test
+.PHONY: build test lint clean check help all build-hos build-hosd build-all cli-test
 
 # Default target
 all: build
 
 # Build commands
 build: build-hos build-hosd
+
+build-all:
+	@echo "Building all packages..."
+	go build ./...
 
 build-hos:
 	@echo "Building hos client..."
@@ -17,12 +21,12 @@ build-hosd:
 # Test commands
 test:
 	@echo "Running tests..."
-	go test -v ./...
+	go test ./...
 
 # Code quality commands
 lint:
 	@echo "Running golangci-lint..."
-	golangci-lint run
+	golangci-lint run --verbose --modules-download-mode=vendor
 
 # Clean up
 clean:
@@ -42,6 +46,7 @@ check: test cli-test lint
 help:
 	@echo "Available commands:"
 	@echo "  build        - Build both hos and hosd binaries"
+	@echo "  build-all    - Build all packages"
 	@echo "  build-hos    - Build only hos client"
 	@echo "  build-hosd   - Build only hosd server"
 	@echo "  test         - Run unit tests"
