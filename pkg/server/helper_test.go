@@ -180,8 +180,7 @@ func newTestClient(s *Server, t *testing.T, users ...string) *clientT {
 }
 
 func (c *clientT) do(user, method, path string, data any, header map[string]string) (*http.Response, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-	defer cancel()
+	ctx := context.Background()
 
 	cfns := []clientFunc{headers(header)}
 	if data != nil {

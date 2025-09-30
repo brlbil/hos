@@ -1,0 +1,117 @@
+name: Build and Test
+
+on:
+  pull_request: {}
+  push:
+    branches:
+      - main
+
+permissions: read-all
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.event.after }}
+  cancel-in-progress: true
+
+jobs:
+  build_commits:
+    name: Build All
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Install Golang
+        uses: actions/setup-go@v6
+        with:
+          go-version: 1.25
+          cache: false
+
+      - name: Build for every commit
+        run: |
+          set -eu -o pipefail
+          COMMITS=$(git rev-list ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }})
+          for commit in $COMMITS ; do
+            git checkout $commit || exit 1
+            go build ./...
+          done
+
+      - name: Failed build commit
+        if: ${{ failure() }}
+        run: |
+          echo "::error::Build failed for commit $(git --no-pager log -n 1 --format=reference)"
+
+  test_commits:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Install Golang
+        uses: actions/setup-go@v6
+        with:
+          go-version: 1.25
+          cache: false
+
+      - name: Run unit test for every commit
+        run: |
+          set -eu -o pipefail
+          COMMITS=$(git rev-list ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }})
+          for commit in $COMMITS ; do
+            git checkout $commit || exit 1
+            make test
+          done
+
+      - name: Failed test commit
+        if: ${{ failure() }}
+        run: |
+          echo "::error::Test failed for commit $(git --no-pager log -n 1 --format=reference)"
+
+  test_cli_commits:
+    name: CLI Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Install Golang
+        uses: actions/setup-go@v6
+        with:
+          go-version: 1.25
+          cache: false
+
+      - name: Run CLI tests for every commit
+        run: |
+          set -eu -o pipefail
+          COMMITS=$(git rev-list ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }})
+          for commit in $COMMITS ; do
+            git checkout $commit || exit 1
+            make cli-test clean
+          done
+
+      - name: Failed CLI test commit
+        if: ${{ failure() }}
+        run: |
+          echo "::error::CLI test failed for commit $(git --no-pager log -n 1 --format=reference)"
+
+      - name: Upload server files
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: cli-test-files
+          path: tmp/
