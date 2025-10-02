@@ -34,7 +34,11 @@ jobs:
       - name: Build for every commit
         run: |
           set -eu -o pipefail
-          COMMITS=$(git rev-list ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }})
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            COMMITS=$(git rev-list ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }})
+          else
+            COMMITS="${{ github.sha }}"
+          fi
           for commit in $COMMITS ; do
             git checkout $commit || exit 1
             go build ./...
@@ -66,7 +70,11 @@ jobs:
       - name: Run unit test for every commit
         run: |
           set -eu -o pipefail
-          COMMITS=$(git rev-list ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }})
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            COMMITS=$(git rev-list ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }})
+          else
+            COMMITS="${{ github.sha }}"
+          fi
           for commit in $COMMITS ; do
             git checkout $commit || exit 1
             make test
@@ -98,7 +106,11 @@ jobs:
       - name: Run CLI tests for every commit
         run: |
           set -eu -o pipefail
-          COMMITS=$(git rev-list ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }})
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            COMMITS=$(git rev-list ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }})
+          else
+            COMMITS="${{ github.sha }}"
+          fi
           for commit in $COMMITS ; do
             git checkout $commit || exit 1
             make cli-test clean

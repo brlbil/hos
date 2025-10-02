@@ -47,7 +47,11 @@ jobs:
       - name: Verify commit signed-off
         run: |
           set -eu -o pipefail
-          COMMITS=$(git rev-list ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }})
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            COMMITS=$(git rev-list ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }})
+          else
+            COMMITS="${{ github.sha }}"
+          fi
           for commit in $COMMITS; do
             commit_msg=$(git log --format=%B -n 1 $commit)
             if ! echo "$commit_msg" | grep -qE "^Signed-off-by: .+ <.+@.+>$"; then
